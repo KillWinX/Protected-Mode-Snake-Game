@@ -1,0 +1,10 @@
+typedef enum {
+    ESC = 0x01,
+    W  = 0x11,
+    A  = 0x1E,
+    S  = 0x1F,
+    D  = 0x20,
+    ENTER = 0x1C,
+    LSHIFR = 0x2A, 
+    RSHIFT = 0x36
+} SC;
