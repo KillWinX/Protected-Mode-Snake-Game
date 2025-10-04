@@ -1,23 +1,15 @@
+/// Includes 
+
 #include "inc/printf.h"
 #include "inc/io.h"
 #include "inc/halt_cpu.h"
-#include "inc/rand.h"
-#include "inc/PIT.h"
 #include "inc/Sleep.h"
-
-
 #include "inc/scancodes.h"
 
+// Global variables for our Snake game
 typedef struct {
     int x, y;
 } Point;
-
-Point snake[100];
-int snake_length;
-Point food;
-int score;
-int gameOver;
-
 
 typedef enum {
     UP = 0,
@@ -26,95 +18,119 @@ typedef enum {
     RIGHT
 } Direction;
 
-char direction = 0;
+Point snake[100];
+int snake_length = 3;
+Point food;
+int gameOver = 0;
+char direction = RIGHT;
 
 void draw_snake() {
-    printf("@", 4, 0, food.x, food.y, 1);
+    fill_bg(0, 0); // Fill the background with black.
     
-    printf("O", 5, 0, snake[0].x, snake[0].y, 1);
+    printf("@", 4, 0, food.x, food.y, 1); // Draw the food at (x,y).
+    printf("O", 5, 0, snake[0].x, snake[0].y, 1); // Draw the snake head.
     
-
-    for (int i = 1; i < snake_length; i++) {
-        printf("o", 5, 0, snake[i].x, snake[i].y, 2);
+    for (int i = 1; i < snake_length; i++) { // Loop through the snake length for the tail.
+        printf("o", 5, 0, snake[i].x, snake[i].y, 2); // Draw the tail.
     }
 }
 
 void move_snake() {
     for (int i = snake_length - 1; i > 0; i--) {
-        snake[i] = snake[i - 1];
-    }
+        snake[i] = snake[i - 1]; 
+    } // Move the tail by shifting each segment.
 
     switch(direction) {
         case UP:    snake[0].y--; break;
         case DOWN:  snake[0].y++; break;
         case LEFT:  snake[0].x--; break;
         case RIGHT: snake[0].x++; break;
-    }
-
-    if (snake[0].x < 0) snake[0].x = VGA_WIDTH - 1;
-    if (snake[0].x >= VGA_WIDTH) snake[0].x = 0;
-    if (snake[0].y < 0) snake[0].y = VGA_HEIGHT - 1;
-    if (snake[0].y >= VGA_HEIGHT) snake[0].y = 0;
+    } // Move the snake head based on direction.
 }
 
 void hand_key() {
-    while (!gameOver) {
-        uint8_t sc = inb(0x60);
-        if (!(sc & 0x80)) { 
-            if (sc == W && direction != DOWN) direction = UP;
-            else if (sc == S && direction != UP) direction = DOWN;
-            else if (sc == A && direction != RIGHT) direction = LEFT;
-            else if (sc == D && direction != LEFT) direction = RIGHT;
+    while (!gameOver) { // Loop until game over
+        uint8_t sc = inb(0x60); // Read the keyboard
+        if (!(sc & 0x80)) {  // Ignore key releases
+            if (sc == W && direction != DOWN) direction = UP; 
+            else if (sc == S && direction != UP) direction = DOWN; 
+            else if (sc == A && direction != RIGHT) direction = LEFT; 
+            else if (sc == D && direction != LEFT) direction = RIGHT; 
         }
 
-        move_snake();
+        move_snake(); // Update snake position
 
-        if (snake[0].x == food.x && snake[0].y == food.y) {
-            snake_length++;    
-            score++;           
-            food.x = rand() % VGA_WIDTH;   
-            food.y = rand() % VGA_HEIGHT;  
+        // Food logic
+        if (snake[0].x == food.x && snake[0].y == food.y) {  
+            snake_length++; // Increase snake length
+            // Food respawn (simple PRNG with PIT seed)
+            food.x = (food.x + 13) % VGA_WIDTH;    
+            food.y = (food.y + 7) % VGA_HEIGHT;  
         }
-       
+    
+        // Collision (Game Over) logic
+        // Wall collision detection
+        if (snake[0].x < 0 || snake[0].x >= VGA_WIDTH || 
+            snake[0].y < 0 || snake[0].y >= VGA_HEIGHT) {
+            gameOver++;
+            break;
+        }
+        
+        // Self collision detection
         for (int i = 1; i < snake_length; i++) {
-            if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) {
-                gameOver = 1;
-                break;
+            if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) { 
+                gameOver++; 
+                break; 
             }
         }
 
-        fill_bg(0, 0);
-       // draw_walls();
-        draw_snake();
-        Sleep(100);
+        draw_snake(); 
+        Sleep(100); // Game speed
     }
 }
 
 void logic() {
-    outb(0x3D4, 0x0A);
+    // Disable the VGA cursor
+    outb(0x3D4, 0x0A);  
     outb(0x3D5, 0x20);
 
-    fill_bg(0,0);
+    fill_bg(0,0); // Main menu background
 
-    pit_init(1000);
+    printf("SNAKE GAME MADE BY KILLWINX\n", 2, 0, 35 - 8, 10, 1); 
+    printf("Press [ENTER] to start", 7, 0, 30, 12, 2);
+    
+    // Wait for ENTER to start
+    while (1) {
+        uint8_t sc = inb(0x60); 
+        if (sc == ENTER) { 
+            break; 
+        }
+        Sleep(10); 
+    }
 
-    srand(timer_ticks); 
+    fill_bg(0,0); // Game background
 
-    unsigned int r = rand(); 
-
-    snake_length = 3;
-    snake[0].x = 80 / 2;
-    snake[0].y = 50 / 2;
-    score = 0;
-    gameOver = 0;
-    food.x = rand() % VGA_WIDTH;
-    food.y = rand() % VGA_HEIGHT;
+    // Snake setup
+    snake_length = 3;  
+    snake[0].x = 40;
+    snake[0].y = 12;
+    snake[1].x = 39;
+    snake[1].y = 12;
+    snake[2].x = 38;
+    snake[2].y = 12;
+    
+    // Food setup
+    food.x = 60;
+    food.y = 12;
      
-    hand_key();
+    hand_key(); // Start main game loop
+
+    // Game Over screen
+    printf("GAME OVER", 4, 0, 36, 12, 1);  
+    Sleep(3000000); 
 }
 
 void kmain() {
-   logic();
-
-   halt();
+   logic(); 
+   halt(); // Halt the CPU
 }
