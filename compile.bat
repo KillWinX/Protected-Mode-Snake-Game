@@ -7,4 +7,4 @@ cd bin
 type boot.bin kernel.bin z.bin > MBR
 qemu MBR
 pause
-exit
+cd..

@@ -1,7 +1,7 @@
 [org 0x7C00]
 
 KERNEL_LOCATION  equ 0x1000         
-KERNEL_SECTORS   equ 4            
+KERNEL_SECTORS   equ 32            
 REALMODE_STACK   equ 0x7000
 PM_STACK         equ 0x9000         
 
