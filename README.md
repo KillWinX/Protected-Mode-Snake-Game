@@ -1,0 +1,3 @@
+# SNAKE GAME MADE IN C AND ASSEMBLY BY KILLWINX AKA PETROS
+
+to run the game us qemu.
